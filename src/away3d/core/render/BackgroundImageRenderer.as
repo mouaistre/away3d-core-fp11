@@ -3,6 +3,8 @@ package away3d.core.render
 	import away3d.core.managers.Stage3DProxy;
 	import away3d.debug.Debug;
 	import away3d.textures.Texture2DBase;
+	import away3d.events.Stage3DEvent;
+	
 
 	import com.adobe.utils.AGALMiniAssembler;
 
@@ -13,7 +15,8 @@ package away3d.core.render
 	import flash.display3D.IndexBuffer3D;
 	import flash.display3D.Program3D;
 	import flash.display3D.VertexBuffer3D;
-
+	import flash.events.Event;
+	
 	public class BackgroundImageRenderer
 	{
 		private var _program3d : Program3D;
@@ -22,6 +25,8 @@ package away3d.core.render
 		private var _vertexBuffer : VertexBuffer3D;
 		private var _stage3DProxy : Stage3DProxy;
 
+		protected var _context : Context3D;
+		
 		public function BackgroundImageRenderer(stage3DProxy : Stage3DProxy)
 		{
 			this.stage3DProxy = stage3DProxy;
@@ -35,8 +40,18 @@ package away3d.core.render
 		public function set stage3DProxy(value : Stage3DProxy) : void
 		{
 			if (value == _stage3DProxy) return;
+			
+			if (!value) {
+				if (_stage3DProxy) _stage3DProxy.removeEventListener(Stage3DEvent.CONTEXT3D_CREATED, onContextUpdate);
+				_stage3DProxy = null;
+				_context = null;
+				return;
+			}
+			
 			_stage3DProxy = value;
-
+			_context = _stage3DProxy.context3D;
+			_stage3DProxy.addEventListener(Stage3DEvent.CONTEXT3D_CREATED, onContextUpdate);
+				
 			if (_vertexBuffer) {
 				_vertexBuffer.dispose();
 				_vertexBuffer = null;
@@ -45,6 +60,8 @@ package away3d.core.render
 				_indexBuffer.dispose();
 				_indexBuffer = null;
 			}
+			
+			
 		}
 
 		private function getVertexCode() : String
@@ -78,19 +95,17 @@ package away3d.core.render
 
 		public function render() : void
 		{
-			var context : Context3D = _stage3DProxy.context3D;
+			if (!_context) return;
 
-			if (!context) return;
-
-			if (!_vertexBuffer) initBuffers(context);
+			if (!_vertexBuffer) initBuffers(_context);
 
 			_stage3DProxy.setProgram(_program3d);
 			_stage3DProxy.setTextureAt(0, _texture.getTextureForStage3D(_stage3DProxy));
-			context.setVertexBufferAt(0, _vertexBuffer, 0, Context3DVertexBufferFormat.FLOAT_2);
-			context.setVertexBufferAt(1, _vertexBuffer, 2, Context3DVertexBufferFormat.FLOAT_2);
-			context.drawTriangles(_indexBuffer, 0, 2);
-			context.setVertexBufferAt(0, null);
-			context.setVertexBufferAt(1, null);
+			_context.setVertexBufferAt(0, _vertexBuffer, 0, Context3DVertexBufferFormat.FLOAT_2);
+			_context.setVertexBufferAt(1, _vertexBuffer, 2, Context3DVertexBufferFormat.FLOAT_2);
+			_context.drawTriangles(_indexBuffer, 0, 2);
+			_context.setVertexBufferAt(0, null);
+			_context.setVertexBufferAt(1, null);
 			_stage3DProxy.setTextureAt(0, null);
 		}
 
@@ -119,6 +134,20 @@ package away3d.core.render
 		public function set texture(value : Texture2DBase) : void
 		{
 			_texture = value;
+		}
+		
+		private function onContextUpdate(event : Event) : void
+		{
+			_context = _stage3DProxy.context3D;
+			
+			if (_vertexBuffer) {
+				_vertexBuffer.dispose();
+				_vertexBuffer = null;
+				_program3d.dispose();
+				_program3d = null;
+				_indexBuffer.dispose();
+				_indexBuffer = null;
+			}
 		}
 	}
 }
