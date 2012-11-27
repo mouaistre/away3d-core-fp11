@@ -457,7 +457,9 @@ package away3d.core.managers
 				
 				// Dispatch the appropriate event depending on whether context was
 				// created for the first time or recreated after a device loss.
-				dispatchEvent(new Stage3DEvent(hadContext? Stage3DEvent.CONTEXT3D_RECREATED : Stage3DEvent.CONTEXT3D_CREATED));
+				//dispatchEvent(new Stage3DEvent(hadContext? Stage3DEvent.CONTEXT3D_RECREATED : Stage3DEvent.CONTEXT3D_CREATED));
+				dispatchEvent(new Stage3DEvent(Stage3DEvent.CONTEXT3D_CREATED));
+
 
 			} else {
 				throw new Error("Rendering context lost!");
